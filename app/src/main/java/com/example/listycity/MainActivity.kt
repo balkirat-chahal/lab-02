@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,6 +26,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -40,8 +43,8 @@ class MainActivity : ComponentActivity() {
                     CityListScreen(
                         cities = cityRepository.cities,
                         onAddCity = {cityRepository.addCity(it)},
+                        onDeleteCity = {cityRepository.deleteCity(it)},
                         modifier = Modifier.padding(paddingValues = innerPadding)
-
                     )
                 }
             }
@@ -53,9 +56,12 @@ class MainActivity : ComponentActivity() {
 fun CityListScreen(
     cities: List<String>,
     onAddCity: (String) -> Unit,
+    onDeleteCity: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var newCityName by remember { mutableStateOf("") }
+    var selectedCityName by remember {mutableStateOf<String?>(null)}
+
 
     Column(modifier = modifier.fillMaxSize()) {
         Row() {
@@ -77,20 +83,54 @@ fun CityListScreen(
                 }
             ){Text("Add City")}
         }
+
+        // We show delete button if a city  is selected
+        if(selectedCityName != null) {
+            Button(
+                onClick = {
+                    onDeleteCity(selectedCityName!!) // This will not be null here
+                    selectedCityName = null
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Delete City")
+            }
+        }
         LazyColumn(modifier = modifier.fillMaxSize()) {
             items(cities) {
-                    city -> CityRow(city=city)
+                    city -> CityRow(
+                        city=city,
+                        isSelected = city == selectedCityName,
+                        onClick = {
+                            // If city is already selected then unselect it
+                            if(selectedCityName == city) {
+                                selectedCityName = null
+                            }
+                            // If this is not selected then select it
+                            else {
+                                selectedCityName = city
+                            }
+                        }
+                        )
             }
         }
     }
 }
 
 @Composable
-fun CityRow(city: String) {
+fun CityRow(city: String, isSelected: Boolean, onClick: () -> Unit) {
     Text(
         text = city,
         fontSize = 28.sp,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp)
+        modifier = Modifier.fillMaxWidth().clickable{onClick()}
+            .background(
+                if(isSelected) {
+                    Color.Blue
+                }
+                else {
+                    Color.Transparent
+                }
+            ).padding(horizontal = 18.dp, vertical = 14.dp)
     )
 }
 
@@ -118,5 +158,9 @@ class CityRepository {
 
     fun addCity(city: String) {
         _cities.add(city)
+    }
+
+    fun deleteCity(city: String) {
+        _cities.remove(city)
     }
 }
